@@ -32,9 +32,6 @@ namespace SubSonic.DataProviders
 {
     public abstract class DbDataProvider : IDataProvider
     {
-        [ThreadStatic]
-        private static DbConnection __sharedConnection;
-
         private ILogAdapter _logger;
 
         public IInterceptionStrategy InterceptionStrategy { get; set; }
@@ -155,7 +152,8 @@ namespace SubSonic.DataProviders
 
             DbCommand cmd = scope.Connection.CreateCommand();
             cmd.Connection = scope.Connection; //CreateConnection();
-
+            if (scope.IsUsingSharedConnection && CurrentSharedTransaction != null)
+                cmd.Transaction = CurrentSharedTransaction;
             cmd.CommandText = qry.CommandSql;
             cmd.CommandType = qry.CommandType;
 
@@ -194,6 +192,8 @@ namespace SubSonic.DataProviders
             using(AutomaticConnectionScope scope = new AutomaticConnectionScope(this))
             {
                 cmd.Connection = scope.Connection;
+                if (scope.IsUsingSharedConnection && CurrentSharedTransaction != null)
+                    cmd.Transaction = CurrentSharedTransaction;
                 AddParams(cmd, qry);
                 DbDataAdapter da = Factory.CreateDataAdapter();
                 da.SelectCommand = cmd;
@@ -212,6 +212,8 @@ namespace SubSonic.DataProviders
             {
                 DbCommand cmd = Factory.CreateCommand();
                 cmd.Connection = automaticConnectionScope.Connection;
+                if (automaticConnectionScope.IsUsingSharedConnection && CurrentSharedTransaction != null)
+                    cmd.Transaction = CurrentSharedTransaction;
                 cmd.CommandType = qry.CommandType;
                 cmd.CommandText = qry.CommandSql;
                 AddParams(cmd, qry);
@@ -249,6 +251,8 @@ namespace SubSonic.DataProviders
             using(AutomaticConnectionScope automaticConnectionScope = new AutomaticConnectionScope(this))
             {
                 DbCommand cmd = automaticConnectionScope.Connection.CreateCommand();
+                if (automaticConnectionScope.IsUsingSharedConnection && CurrentSharedTransaction != null)
+                    cmd.Transaction = CurrentSharedTransaction;
                 cmd.CommandText = qry.CommandSql;
                 cmd.CommandType = qry.CommandType;
                 AddParams(cmd, qry);
@@ -262,6 +266,7 @@ namespace SubSonic.DataProviders
 
         public IList<T> ToList<T>(QueryCommand qry) where T : new()
         {
+			WriteToLog(() => "ToList: " + qry.CommandSql);
             List<T> result;
             using(var rdr = ExecuteReader(qry))
                 result = rdr.ToList<T>(GetInterceptor(typeof(T)));
@@ -279,28 +284,11 @@ namespace SubSonic.DataProviders
             get { return DbDataProviderName; }
         }
 
-        /// <summary>
-        /// Gets or sets the current shared connection.
-        /// </summary>
-        /// <value>The current shared connection.</value>
-        public DbConnection CurrentSharedConnection
-        {
-            get { return __sharedConnection; }
+        #region Shared connection and transaction handling
 
-            protected set
-            {
-                if(value == null)
-                {
-                    __sharedConnection.Dispose();
-                    __sharedConnection = null;
-                }
-                else
-                {
-                    __sharedConnection = value;
-                    __sharedConnection.Disposed += __sharedConnection_Disposed;
-                }
-            }
-        }
+        public abstract DbConnection CurrentSharedConnection { get; protected set; }
+
+        public abstract DbTransaction CurrentSharedTransaction { get; set; }
 
         /// <summary>
         /// Initializes the shared connection.
@@ -308,10 +296,7 @@ namespace SubSonic.DataProviders
         /// <returns></returns>
         public DbConnection InitializeSharedConnection()
         {
-            if(CurrentSharedConnection == null)
-                CurrentSharedConnection = CreateConnection();
-
-            return CurrentSharedConnection;
+        	return InitializeSharedConnection(ConnectionString);
         }
 
         /// <summary>
@@ -321,9 +306,21 @@ namespace SubSonic.DataProviders
         /// <returns></returns>
         public DbConnection InitializeSharedConnection(string sharedConnectionString)
         {
-            if(CurrentSharedConnection == null)
-                CurrentSharedConnection = CreateConnection(sharedConnectionString);
-
+        	var reuse = CurrentSharedConnection != null;
+        	try
+        	{
+        		if (CurrentSharedConnection == null)
+        			CurrentSharedConnection = CreateConnection(sharedConnectionString);
+        		if (CurrentSharedConnection.State == ConnectionState.Closed)
+        			CurrentSharedConnection.Open();
+        	}
+        	catch (Exception e)
+        	{
+				if (CurrentSharedConnection == null)
+					throw new Exception("Error initializing shared connection. CurrentSharedConnection is null.", e);
+				throw new Exception(string.Format("Error initializing shared connection. Connection state: [{0}], Reusing Connection: [{1}]", CurrentSharedConnection.State, reuse), e);
+				//throw new Exception(string.Format("Error initializing shared connection. Connection state: [{0}], Connection string: [{1}], Reusing Connection: [{2}]", CurrentSharedConnection.State, CurrentSharedConnection.ConnectionString, reuse), e);
+			}
             return CurrentSharedConnection;
         }
 
@@ -332,12 +329,50 @@ namespace SubSonic.DataProviders
         /// </summary>
         public void ResetSharedConnection()
         {
-            CurrentSharedConnection = null;
-        }
+        	try
+        	{
+        		if(CurrentSharedConnection != null && CurrentSharedConnection.State != ConnectionState.Closed)
+        			CurrentSharedConnection.Close();
+        	}
+        	catch (Exception)
+        	{
+				// intentionally ignoring exceptions.
+        	}
+			try
+			{
+				if (CurrentSharedConnection != null)
+					CurrentSharedConnection.Dispose();
+			}
+			finally
+			{
+				CurrentSharedConnection = null;
+			}
+			try
+			{
+				if (CurrentSharedTransaction != null)
+					CurrentSharedTransaction.Dispose();
+			}
+			finally
+			{
+				CurrentSharedTransaction = null;
+			}
+		}
+
+        #endregion
 
         public DbConnection CreateConnection()
         {
             return CreateConnection(ConnectionString);
+        }
+
+        public object ConvertDataValueForThisProvider(object input)
+        {
+            return SchemaGenerator.ConvertDataValueForThisProvider(input);
+        }
+
+        public DbType ConvertDataTypeToDbType(DbType dataType)
+        {
+            return SchemaGenerator.ConvertDataTypeToDbType(dataType);
         }
 
         public ITable FindTable(string tableName)
@@ -380,8 +415,7 @@ namespace SubSonic.DataProviders
         public abstract string QualifyTableName(ITable tbl);
         public abstract string QualifyColumnName(IColumn column);
        
-        // TODO: Make that abstract too? Or at least virtual
-        public string QualifySPName(IStoredProcedure sp)
+        public virtual string QualifySPName(IStoredProcedure sp)
         {
             const string qualifiedFormat = "[{0}].[{1}]";
             return String.Format(qualifiedFormat, sp.SchemaName, sp.Name);
@@ -466,18 +500,25 @@ namespace SubSonic.DataProviders
             }
         }
 
-        private static void __sharedConnection_Disposed(object sender, EventArgs e)
-        {
-            __sharedConnection = null;
-        }
-
         public DbConnection CreateConnection(string connectionString)
         {
-            DbConnection conn = Factory.CreateConnection();
-            conn.ConnectionString = connectionString;
-            if(conn.State == ConnectionState.Closed)
-                conn.Open();
-            return conn;
+            if(string.IsNullOrEmpty(connectionString))
+                throw new ArgumentNullException("connectionString");
+			var conn = Factory.CreateConnection();
+			try
+			{
+				conn.ConnectionString = connectionString;
+				if (conn.State == ConnectionState.Closed)
+					conn.Open();
+				else
+					throw new ApplicationException("Created connection was already open. It should have been created in a Closed state.");
+				return conn;
+			}
+			catch(Exception ex)
+			{
+				throw new ApplicationException("Error while creating a database connection.", ex);
+				//throw new ApplicationException(string.Format("Error while creating a database connection with the connection string {0} (DBConnection.ConnectionString = {1}).", connectionString, conn.ConnectionString), ex);
+			}
         }
 
 		public virtual IEnumerable<T> ToEnumerable<T>(QueryCommand<T> query, object[] paramValues)
@@ -534,6 +575,9 @@ namespace SubSonic.DataProviders
 				/// <returns></returns>
 				public virtual IEnumerable<T> Project<T>(DbDataReader reader, Func<DbDataReader, T> fnProjector)
 				{
+          // Why is this loading into a list instead of a yield return?
+          // So if a user does db.TableWithMillionRows.Take(5) it will load all million rows into memory anyway?
+          // -Jeff V.
 					try
 					{
 						var readValues = new List<T>();
@@ -557,5 +601,9 @@ namespace SubSonic.DataProviders
                 _logger.Log(logMessage());
             }
         }
+
+
+        public bool ExecuteDetachedForDebug { get; set; }
+        public QueryDebugInfo LastExecuteDebug { get; set; }
     }
 }

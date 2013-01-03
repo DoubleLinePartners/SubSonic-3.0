@@ -49,6 +49,7 @@ namespace SubSonic.DataProviders
 
         string ParameterPrefix { get; }
         DbConnection CurrentSharedConnection { get; }
+        DbTransaction CurrentSharedTransaction { get; set; }
         string ConnectionString { get; }
         DbProviderFactory Factory { get; }
         ITable GetTableFromDB(string tableName);
@@ -75,5 +76,9 @@ namespace SubSonic.DataProviders
         DbConnection CreateConnection();
         void MigrateToDatabase<T>(Assembly assembly);
         void MigrateNamespaceToDatabase(string modelNamespace, Assembly assembly);
+        object ConvertDataValueForThisProvider(object input);
+        DbType ConvertDataTypeToDbType(DbType dataType);
+        bool ExecuteDetachedForDebug { get; set; }
+        QueryDebugInfo LastExecuteDebug { get; set; }
     }
 }

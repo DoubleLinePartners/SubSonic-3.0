@@ -41,6 +41,7 @@ namespace SubSonic.Query
         private readonly IDataProvider _provider;
         public List<string> ColumnList = new List<string>();
         public List<InsertSetting> Inserts = new List<InsertSetting>();
+        internal SqlQuery SelectValues;
         internal ITable Table;
         private string tableName = "";
 
@@ -175,7 +176,7 @@ namespace SubSonic.Query
             InsertSetting setting = new InsertSetting
                                         {
                                             ColumnName = columnName,
-                                            ParameterName = _provider.ParameterPrefix + "ins_" + columnName.ToAlphaNumericOnly(),
+                                            ParameterName = _provider.ParameterPrefix + "ins_" + Guid.NewGuid().ToString().Replace('-','_').Substring(0,25),
                                             Value = columnValue,
                                             IsExpression = isExpression,
                                             DataType = dbType

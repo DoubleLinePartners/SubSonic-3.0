@@ -25,7 +25,7 @@ namespace SubSonic.Linq.Structure
     /// <summary>
     /// A default implementation of IQueryable for use with QueryProvider
     /// </summary>
-    public class Query<T> : IQueryable<T>, IQueryable, IEnumerable<T>, IEnumerable, IOrderedQueryable<T>, IOrderedQueryable
+    public class Query<T> : IQuery<T>
     {
         IQueryProvider provider;
         Expression expression;

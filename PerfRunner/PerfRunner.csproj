@@ -12,6 +12,7 @@
     <AssemblyName>PerfRunner</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <StartupObject>PerfRunner.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,6 +43,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\dataobjects\DataObjects.csproj">
+      <Project>{81B21A0B-91BF-47CF-8768-13DEC3CC2B73}</Project>
+      <Name>DataObjects</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SubSonic.Core\SubSonic.Core.csproj">
       <Project>{53FF90B2-2D33-4EC0-91B6-A30FDF1B3374}</Project>
       <Name>SubSonic.Core</Name>

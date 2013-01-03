@@ -72,7 +72,7 @@ namespace SubSonic.Tests.Linq
         [Fact]
         public void First_Product_Should_Have_ProductID_1()
         {
-            Assert.True(_db.Products.First().ProductID == 1);
+            Assert.True(_db.Products.OrderBy(p=> p.ProductID).First().ProductID == 1);
         }      
 
         [Fact]

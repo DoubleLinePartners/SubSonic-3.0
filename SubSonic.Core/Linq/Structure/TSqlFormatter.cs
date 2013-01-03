@@ -46,6 +46,14 @@ namespace SubSonic.Linq.Structure
             Outer
         }
 
+        protected virtual string GetPrepositionUsedBeforeNamingTablesAndColumns
+        {
+            get
+            {
+                return " AS ";
+            }
+        }
+
         protected int IndentationWidth
         {
             get { return this.indent; }
@@ -945,7 +953,7 @@ namespace SubSonic.Linq.Structure
             return type == typeof(bool) || type == typeof(bool?);
         }
 
-        private bool IsPredicate(Expression expr)
+        public bool IsPredicate(Expression expr)
         {
             switch (expr.NodeType)
             {

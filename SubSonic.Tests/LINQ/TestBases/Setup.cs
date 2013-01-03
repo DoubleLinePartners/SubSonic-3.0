@@ -264,23 +264,24 @@ namespace SubSonic.Tests.Linq.TestBases
 
         public void DropTestTables()
         {
-            DropTestTable("Products");
-            DropTestTable("Orders");
-            DropTestTable("OrderDetails");
-            DropTestTable("Customers");
-            DropTestTable("Categories");
-        }
+            var tables = new Type[] {
+                typeof(Product),
+                typeof(Order),
+                typeof(OrderDetail),
+                typeof(Customer),
+                typeof(Category)
+            };
 
-        private void DropTestTable(string tableName)
-        {
-            var sql = String.Format("DROP TABLE {0};\r\n", tableName);
-            try
+            foreach (var t in tables)
             {
-                _provider.ExecuteQuery(new QueryCommand(sql, _provider));
-            }
-            catch (Exception)
-            {
-                //do nothing - this is here to catch a DROP error
+                try
+                {
+                    _provider.ExecuteQuery(new QueryCommand(t.ToSchemaTable(_provider).DropSql, _provider));
+                }
+                catch (Exception)
+                {
+                    //do nothing - this is here to catch a DROP error
+                }
             }
         }
     }

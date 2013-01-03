@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using SubSonic.Extensions;
 using SubSonic.Linq.Structure;
 using SubSonic.Tests.Unit.Linq.SqlStrings;
 using Xunit;

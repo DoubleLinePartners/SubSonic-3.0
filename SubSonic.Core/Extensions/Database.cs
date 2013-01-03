@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -139,29 +140,55 @@ namespace SubSonic.Extensions
             return query.Constraints;
         }
         public static void Load<T>(this IDataReader rdr, T item) {
-            Load<T>(rdr, item, new List<string>());
+            PropertyInfo[] cachedProps = typeof(T).GetProperties();
+            FieldInfo[] cachedFields = typeof(T).GetFields();
+            Load<T>(rdr, item, new List<string>(), cachedProps, cachedFields);
         }
 
         /// <summary>
         /// Coerces an IDataReader to try and load an object using name/property matching
         /// </summary>
-        public static void Load<T>(this IDataReader rdr, T item, List<string> ColumnNames) //mike added ColumnNames
+        /// <remarks>
+        /// WARNING: There is a bug in this method. If the passed in ColumnNames and the actual column
+        /// order in the data reader aren't the same (which they may not be if you are doing some table
+        /// joins and a projection into an object)
+        /// then this method might put the wrong data into the wrong properties of the object.
+        /// The passed in "ColumnNames" aren't actually the DB column names, they are the projection
+        /// object's property names. This code is assuming that the object's properties are in the same
+        /// order as the DB query's returned columns. (Jeff V.)
+        /// </remarks>
+        public static void Load<T>(this IDataReader rdr, T item, List<string> ColumnNames, PropertyInfo[] cachedProps, FieldInfo[] cachedFields) //mike added ColumnNames
         {
             Type iType = typeof(T);
-
-            PropertyInfo[] cachedProps = iType.GetProperties();
-            FieldInfo[] cachedFields = iType.GetFields();
 
             // Avoid enumerating properties looking for matching name (performs poorly on large result sets)
             Dictionary<string, PropertyInfo> cachedPropsByLowerName = cachedProps.ToDictionary(x => x.Name.ToLower(), x => x);
             Dictionary<string, FieldInfo> cachedFieldsByLowerName = cachedFields.ToDictionary(x => x.Name.ToLower(), x => x);
-            List<string> columnNamesLower = ColumnNames.Select(x => x.ToLower()).ToList();
+            List<string> columnNamesLower = ColumnNames == null
+                                                ? new List<string>()
+                                                : ColumnNames.Select(x => x.ToLower()).ToList();
 
             PropertyInfo currentProp;
             FieldInfo currentField = null;
 
             for(int i = 0; i < rdr.FieldCount; i++)
             {
+                /* These 2 lines can cause a bug, because it tries to find an object property named the same as
+                 * a DB column name, which isnt always what the user wanted. Take for example:
+                 * 
+                 * var o = from t in db.SomeTable
+                 *         where t.COL1 == 'foo'
+                 *         select new()
+                 *         {
+                 *           COL1 = t.COL2,
+                 *           COL2 = t.COL1
+                 *         }
+                 *
+                 * In this case, the object returned by this method will end up with the properties mapped in reverse
+                 *  (o.COL1 = t.COL1, o.COL2 = t.COL2 instead of the requested o.COL1 = t.COL2, o.COL2 = t.COL1)
+                 *
+                 * (Jeff V.)
+                 */
                 string pName = rdr.GetName(i);
                 string pNameLower = pName.ToLower();
 
@@ -169,6 +196,16 @@ namespace SubSonic.Extensions
                 cachedPropsByLowerName.TryGetValue(pNameLower, out currentProp);
 
 				//mike if the property is null and ColumnNames has data then look in ColumnNames for match
+                /* This can cause a bug because it assumes ColumnNames is in the same order as the columns
+                 * returned by the database, which is not always true.
+                 * 
+                 * It will assign 'rdr.GetValue(i)' to the object property named 'ColumnNames[i]'
+                 * but there is no guarantee that rdr's columns and ColumnNames' columns are actually in
+                 * the same order as defined by the projection. This leads to some values being assigned
+                 * the the wrong property.
+                 * 
+                 * (Jeff V.)
+                 */
 				if (currentProp == null && ColumnNames != null && ColumnNames.Count > i) {
                     //currentProp = cachedProps.First(x => x.Name == ColumnNames[i]);
                     cachedPropsByLowerName.TryGetValue(columnNamesLower[i], out currentProp);
@@ -179,62 +216,67 @@ namespace SubSonic.Extensions
 				    cachedFieldsByLowerName.TryGetValue(pNameLower, out currentField);
                     //currentField = cachedFields.SingleOrDefault(x => x.Name.Equals(pName, StringComparison.InvariantCultureIgnoreCase));
 
-                if(currentProp != null && !DBNull.Value.Equals(rdr.GetValue(i)))
+                var value = rdr.GetValue(i);
+                if(currentProp != null && !DBNull.Value.Equals(value))
                 {
-                    Type valueType = rdr.GetValue(i).GetType();
+                    Type valueType = value.GetType();
                     if(valueType == typeof(Boolean))
                     {
-                        string value = rdr.GetValue(i).ToString();
-                        currentProp.SetValue(item, value == "1" || value == "True", null);
+                        string valueStr = value.ToString();
+                        currentProp.SetValue(item, valueStr == "1" || valueStr == "True", null);
                     }
                     else if(currentProp.PropertyType == typeof(Guid))
                     {
-						currentProp.SetValue(item, rdr.GetGuid(i), null);
+                        if (rdr[i] is Guid)
+                        {
+                            currentProp.SetValue(item, rdr.GetGuid(i), null);
+                        }
+                        else
+                        {
+                            string guidInString = rdr.GetString(i);
+                            Guid guid = new Guid(guidInString);
+                            currentProp.SetValue(item, guid, null);
+                        }
 					}
 					else if (Objects.IsNullableEnum(currentProp.PropertyType))
 					{
-						var nullEnumObjectValue = Enum.ToObject(Nullable.GetUnderlyingType(currentProp.PropertyType), rdr.GetValue(i));
+                        var nullEnumObjectValue = Enum.ToObject(Nullable.GetUnderlyingType(currentProp.PropertyType), value);
 						currentProp.SetValue(item, nullEnumObjectValue, null);
 					}
                     else if (currentProp.PropertyType.IsEnum)
                     {
-                        var enumValue = Enum.ToObject(currentProp.PropertyType, rdr.GetValue(i));
+                        var enumValue = Enum.ToObject(currentProp.PropertyType, value);
                         currentProp.SetValue(item, enumValue, null);
                     }
                     else{
-
-					    var val = rdr.GetValue(i);
-					    var valType = val.GetType();
                         //try to assign it
                         if (currentProp.PropertyType.IsAssignableFrom(valueType)) {
-                            currentProp.SetValue(item, val, null);
+                            currentProp.SetValue(item, value, null);
                         } else {
-                            currentProp.SetValue(item, val.ChangeTypeTo(currentProp.PropertyType), null);
+                            currentProp.SetValue(item, value.ChangeTypeTo(currentProp.PropertyType), null);
                         }
 					}
                 }
-                else if(currentField != null && !DBNull.Value.Equals(rdr.GetValue(i)))
+                else if (currentField != null && !DBNull.Value.Equals(value))
                 {
-                    Type valueType = rdr.GetValue(i).GetType();
+                    Type valueType = value.GetType();
                     if(valueType == typeof(Boolean))
                     {
-                        string value = rdr.GetValue(i).ToString();
-                        currentField.SetValue(item, value == "1" || value == "True");
+                        string valueStr = value.ToString();
+                        currentField.SetValue(item, valueStr == "1" || valueStr == "True");
                     }
                     else if(currentField.FieldType == typeof(Guid))
                     {
 						currentField.SetValue(item, rdr.GetGuid(i));
 					} else if (Objects.IsNullableEnum(currentField.FieldType)) {
-                        var nullEnumObjectValue = Enum.ToObject(Nullable.GetUnderlyingType(currentField.FieldType), rdr.GetValue(i));
+                        var nullEnumObjectValue = Enum.ToObject(Nullable.GetUnderlyingType(currentField.FieldType), value);
                         currentField.SetValue(item, nullEnumObjectValue);
                     } else {
-                        var val = rdr.GetValue(i);
-                        var valType = val.GetType();
                         //try to assign it
                         if (currentField.FieldType.IsAssignableFrom(valueType)) {
-                            currentField.SetValue(item, val);
+                            currentField.SetValue(item, value);
                         } else {
-                            currentField.SetValue(item, val.ChangeTypeTo(currentField.FieldType));
+                            currentField.SetValue(item, value.ChangeTypeTo(currentField.FieldType));
                         }
                     }
                 }
@@ -411,6 +453,9 @@ namespace SubSonic.Extensions
         /// </summary>
         public static List<T> ToList<T>(this IDataReader rdr, Func<object, object> onItemCreated) where T : new()
         {
+            PropertyInfo[] cachedProps = typeof(T).GetProperties();
+            FieldInfo[] cachedFields = typeof(T).GetFields();
+
             List<T> result = new List<T>();
             Type iType = typeof(T);
 
@@ -424,7 +469,7 @@ namespace SubSonic.Extensions
                     item = (T)onItemCreated(item);
                 }
 
-                rdr.Load(item,null);//mike added null to match ColumnNames
+                rdr.Load(item,null, cachedProps, cachedFields);//mike added null to match ColumnNames
                 result.Add(item);
             }
             return result;

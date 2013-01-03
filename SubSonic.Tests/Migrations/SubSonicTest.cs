@@ -50,4 +50,12 @@ namespace SubSonic.Tests.Migrations
         [SubSonicIgnore]
         public int IgnoreMe { get; set; }
     }
+
+    // this class has a numeric primary key. intended to test sequence generation.
+    public partial class SubSonicTest2
+    {
+        public long SubSonicTest2ID { get; set; }
+        [SubSonicStringLength(1)]
+        public string String { get; set; }
+    }
 }

@@ -11,7 +11,7 @@ using SubSonic.Linq.Structure;
 namespace SubSonic.DataProviders.MySQL
 {
     /// <summary>
-    /// Formats a query expression into TSQL language syntax
+    /// Formats a query expression into MySQL language syntax
     /// </summary>
     public class MySqlFormatter : TSqlFormatter
     {

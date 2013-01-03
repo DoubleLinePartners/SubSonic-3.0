@@ -32,7 +32,7 @@ namespace SubSonic.DataProviders
         /// </summary>
         /// <param name="tableName">Name of the table.</param>
         /// <returns></returns>
-        string BuildDropTableStatement(string tableName);
+        //string BuildDropTableStatement(string tableName);
 
         /// <summary>
         /// Adds the column.
@@ -46,6 +46,13 @@ namespace SubSonic.DataProviders
         /// </summary>
         /// <param name="column">The column.</param>
         string BuildAlterColumnStatement(IColumn column);
+
+        /// <summary>
+        /// Builds a DROP TABLE statement.
+        /// </summary>
+        /// <param name="table">Name of the table.</param>
+        /// <returns></returns>
+        string BuildDropTableStatement(ITable table);
 
         /// <summary>
         /// Removes the column.
@@ -81,6 +88,18 @@ namespace SubSonic.DataProviders
         ITable GetTableFromDB(IDataProvider provider, string tableName);
         string[] GetTableList(IDataProvider provider);
         DbType GetDbType(string sqlType);
+
+        /// <summary>
+        /// This method is a place to convert data types before they are added to a DbParameter's Value.
+        /// This can be used to convert object to a different data type incase a DB provider doesn't natively
+        /// support that type. For example, Oracle doesn't support 'bool' so it needs to be converted to a
+        /// string or number instead.
+        /// </summary>
+        /// <param name="input">The original data.</param>
+        /// <returns>The object to set the parameter's value to.</returns>
+        object ConvertDataValueForThisProvider(object input);
+
+        DbType ConvertDataTypeToDbType(DbType dataType);
 
         string ClientName { get; set; }
     }

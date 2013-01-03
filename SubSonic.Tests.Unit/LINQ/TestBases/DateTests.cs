@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using SubSonic.Tests.Unit.Linq.SqlStrings;
+using SubSonic.Extensions;
 using Xunit;
 
 namespace SubSonic.Tests.Unit.Linq.TestBases

@@ -78,11 +78,28 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataProviders\SharedConnectionScopeTests.cs" />
     <Compile Include="DbClientTypeName.cs" />
+    <Compile Include="Linq\DataProviderOverrides\ExpectedSqlStrings\ISqlStrings.cs" />
+    <Compile Include="Linq\DataProviderOverrides\ExpectedSqlStrings\MsSqlServerSqlStrings.cs" />
+    <Compile Include="Linq\DataProviderOverrides\ExpectedSqlStrings\OracleSqlStrings.cs" />
+    <Compile Include="Linq\DataProviderOverrides\OracleTests.cs" />
+    <Compile Include="Linq\DataProviderOverrides\MsSqlServerTests.cs" />
+    <Compile Include="Linq\DataProviderOverrides\TestBases\DataProviderOverridesTestBase.cs" />
+    <Compile Include="Linq\DataProviderOverrides\TestBases\SqlStringTests.cs" />
+    <Compile Include="Linq\DataProviderOverrides\TestBases\TestClasses\Order.cs" />
+    <Compile Include="Linq\DataProviderOverrides\TestBases\TestDb.cs" />
+    <Compile Include="Linq\MemoryTests.cs" />
+    <Compile Include="Linq\OracleTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Linq\SqlStrings\IDateTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\INumberTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\ISelectTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\IStringTestsSql.cs" />
+    <Compile Include="Linq\SqlStrings\OracleDateTestsSql.cs" />
+    <Compile Include="Linq\SqlStrings\OracleNumberTestsSql.cs" />
+    <Compile Include="Linq\SqlStrings\OracleStringTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\Sql2005DateTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\Sql2005NumberTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\Sql2005SelectTestsSql.cs" />
@@ -91,8 +108,8 @@
     <Compile Include="Linq\SqlStrings\Sql2008NumberTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\Sql2008SelectTestsSql.cs" />
     <Compile Include="Linq\SqlStrings\Sql2008StringTestsSql.cs" />
+    <Compile Include="Linq\TestBases\MemTestDB.cs" />
     <Compile Include="Linq\TestBases\DateTests.cs" />
-    <Compile Include="Linq\TestBases\Extensions.cs" />
     <Compile Include="Linq\TestBases\NumberTests.cs" />
     <Compile Include="Linq\TestBases\SelectTests.cs" />
     <Compile Include="Extensions\DatabaseTests.cs" />
@@ -105,6 +122,7 @@
     <Compile Include="Linq\SQL2008Tests.cs" />
     <Compile Include="Linq\SQLiteTests.cs" />
     <Compile Include="Linq\TestBases\Setup.cs" />
+    <Compile Include="Linq\TestBases\SqlStringTestsBase.cs" />
     <Compile Include="Linq\TestBases\TestDB.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Linq\TestBases\StringTests.cs" />
@@ -154,6 +172,10 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Linq\SqlStrings\OracleSelectTestsSql.cs" />
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

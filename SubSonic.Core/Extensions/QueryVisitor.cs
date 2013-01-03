@@ -266,6 +266,30 @@ namespace SubSonic.Extensions
             return methodCallExpression;
         }
 
+        protected override Expression VisitConditional(ConditionalExpression c)
+        {
+            var ret = base.VisitConditional(c);
+            try
+            {
+                // If this conditional had any constant or member access values in it, then VisitConditional()
+                // will have left current.ParameterValue set to the last visited constant or member value.
+                //
+                // for example, this would evaluate to a ConditionalExpression:
+                //   (true ? "Y" : "N")
+                // however, current.ParameterValue will always be set to "N" after base.VisitConditional() returns.
+                // 
+                // Evaluate the conditional and see if we can get a real value from it. If so, then use that as
+                // the current ParameterValue.
+                if (!isLeft)
+                    current.ParameterValue = Expression.Lambda<Func<object>>(c, new ParameterExpression[0]).Compile()();
+            }
+            catch
+            {
+                // ignore errors.
+            }
+            return ret;
+        }
+
         private void BuildCollectionConstraint(MethodCallExpression methodCallExpression)
         {
             if (methodCallExpression.Arguments.Count == 2)

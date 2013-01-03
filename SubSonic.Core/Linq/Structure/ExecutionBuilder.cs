@@ -219,7 +219,7 @@ namespace SubSonic.Linq.Structure
             okayToDefer &= (receivingMember != null && policy.IsDeferLoaded(receivingMember));
 
             // parameterize query
-            projection = (ProjectionExpression) Parameterizer.Parameterize(projection);
+            projection = (ProjectionExpression)policy.Mapping.Language.Parameterize(projection);
 
             if (scope != null)
             {

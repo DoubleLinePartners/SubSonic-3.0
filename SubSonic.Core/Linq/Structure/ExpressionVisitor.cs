@@ -21,6 +21,7 @@ namespace SubSonic.Linq.Structure
         {
             if (exp == null)
                 return exp;
+
             switch (exp.NodeType)
             {
                 case ExpressionType.Negate:
@@ -221,6 +222,7 @@ namespace SubSonic.Linq.Structure
         {
             Expression obj = this.Visit(m.Object);
             IEnumerable<Expression> args = this.VisitExpressionList(m.Arguments);
+
             if (obj != m.Object || args != m.Arguments)
             {
                 return Expression.Call(obj, m.Method, args);

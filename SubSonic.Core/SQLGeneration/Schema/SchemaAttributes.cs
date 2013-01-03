@@ -13,6 +13,8 @@
 // 
 using System;
 using System.Data;
+using System.Linq;
+using SubSonic.DataProviders;
 using SubSonic.Schema;
 
 namespace SubSonic.SqlGeneration.Schema
@@ -20,13 +22,13 @@ namespace SubSonic.SqlGeneration.Schema
     public interface IClassMappingAttribute
     {
         bool Accept(ITable table);
-        void Apply(ITable table);
+        void Apply(ITable table, IDataProvider provider);
     }
 
     public interface IPropertyMappingAttribute
     {
         bool Accept(IColumn column);
-        void Apply(IColumn column);
+        void Apply(IColumn column, IDataProvider provider);
     }
 
 	[AttributeUsage(AttributeTargets.Class)]
@@ -44,13 +46,36 @@ namespace SubSonic.SqlGeneration.Schema
             return true;
         }
 
-        public void Apply(ITable table)
+        public virtual void Apply(ITable table, IDataProvider provider)
         {
             table.Name = TableName;
         }
     }
 
-	[AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public class SubSonicDataProviderTableNameOverrideAttribute : SubSonicTableNameOverrideAttribute
+    {
+        private readonly Type _dataProviderType;
+
+        public SubSonicDataProviderTableNameOverrideAttribute(Type dataProviderType, string tableName)
+            : base(tableName)
+        {
+            if (!dataProviderType.GetInterfaces().ToList().Contains(typeof(IDataProvider)))
+                throw new ArgumentException("Type must implement IDataProvider interface", "dataProviderType");
+            _dataProviderType = dataProviderType;
+        }
+
+        public override void Apply(ITable table, IDataProvider provider)
+        {
+            if (provider != null
+                && provider.GetType() == _dataProviderType)
+            {
+                base.Apply(table, provider);
+            }
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
 	public class SubSonicColumnNameOverrideAttribute : Attribute, IPropertyMappingAttribute
 	{
 		public string ColumnName { get; set; }
@@ -65,11 +90,33 @@ namespace SubSonic.SqlGeneration.Schema
 			return true;
 		}
 
-		public void Apply(IColumn col)
+		public virtual void Apply(IColumn col, IDataProvider provider)
 		{
 			col.Name = ColumnName;
 		}
 	}
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
+    public class SubSonicDataProviderColumnNameOverrideAttribute : SubSonicColumnNameOverrideAttribute
+    {
+        private readonly Type _dataProviderType;
+
+        public SubSonicDataProviderColumnNameOverrideAttribute(Type dataProviderType, string tableName) : base(tableName)
+        {
+            if (!dataProviderType.GetInterfaces().ToList().Contains(typeof(IDataProvider)))
+                throw new ArgumentException("Type must implement IDataProvider interface", "dataProviderType");
+            _dataProviderType = dataProviderType;
+        }
+
+        public override void Apply(IColumn column, IDataProvider provider)
+        {
+            if (provider != null
+                && provider.GetType() == _dataProviderType)
+            {
+                base.Apply(column, provider);
+            }
+        }
+    }
 
     [AttributeUsage(AttributeTargets.Property)]
     public class SubSonicNullStringAttribute : Attribute, IPropertyMappingAttribute 
@@ -79,7 +126,7 @@ namespace SubSonic.SqlGeneration.Schema
             return DbType.String == column.DataType;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.IsNullable = true;
         }
@@ -93,7 +140,7 @@ namespace SubSonic.SqlGeneration.Schema
             return DbType.String == column.DataType;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.MaxLength = 8001;
         }
@@ -122,7 +169,7 @@ namespace SubSonic.SqlGeneration.Schema
             return true;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.IsPrimaryKey = true;
             column.IsNullable = false;
@@ -148,7 +195,7 @@ namespace SubSonic.SqlGeneration.Schema
             return DbType.String == column.DataType;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.MaxLength = Length;
         }
@@ -171,7 +218,7 @@ namespace SubSonic.SqlGeneration.Schema
             return column.DataType == DbType.Decimal || column.DataType == DbType.Double;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.NumberScale = Scale;
             column.NumericPrecision = Precision;
@@ -193,7 +240,7 @@ namespace SubSonic.SqlGeneration.Schema
             return true;
         }
 
-        public void Apply(IColumn column)
+        public void Apply(IColumn column, IDataProvider provider)
         {
             column.DefaultSetting = DefaultSetting;
         }

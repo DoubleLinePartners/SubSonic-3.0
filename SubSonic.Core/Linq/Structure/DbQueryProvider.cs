@@ -99,6 +99,9 @@ namespace SubSonic.Linq.Structure
         public override object Execute(Expression expression)
         {
             Expression plan = GetExecutionPlan(expression);
+        	//WriteToLog(plan.PrintExpressionTree());
+            if (_provider.ExecuteDetachedForDebug) // don't execute, just return the default value.
+                SetDebugOnProvider(expression);
 
             LambdaExpression lambda = expression as LambdaExpression;
             if (lambda != null)
@@ -226,7 +229,11 @@ namespace SubSonic.Linq.Structure
         /// <returns></returns>
         public virtual IEnumerable<T> Execute<T>(QueryCommand<T> query, object[] paramValues)
         {
-            return _provider.ToEnumerable<T>(query, paramValues);
+        	WriteToLog(query.CommandText);
+            if (_provider.ExecuteDetachedForDebug)
+                return DefaultEnum<T>();
+            else
+                return _provider.ToEnumerable<T>(query, paramValues);
         }
 
         /// <summary>
@@ -238,13 +245,23 @@ namespace SubSonic.Linq.Structure
         /// <returns></returns>
         public virtual IEnumerable<T> ExecuteDeferred<T>(QueryCommand<T> query, object[] paramValues)
         {
-            DbCommand cmd = GetCommand(query.CommandText, query.ParameterNames, paramValues);
-            LogCommand(cmd);
-            DbDataReader reader = cmd.ExecuteReader();
-            while (reader.Read())
+            if (_provider.ExecuteDetachedForDebug)
+                yield return default(T);
+            else
             {
-                yield return query.Projector(reader);
+                DbCommand cmd = GetCommand(query.CommandText, query.ParameterNames, paramValues);
+                LogCommand(cmd);
+                DbDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    yield return query.Projector(reader);
+                }
             }
+        }
+
+        private IEnumerable<T> DefaultEnum<T>()
+        {
+            yield return default(T);
         }
 
         /// <summary>
@@ -292,5 +309,24 @@ namespace SubSonic.Linq.Structure
             //    this.log.WriteLine();
             //}
         }
+
+        private void SetDebugOnProvider(Expression expr)
+        {
+            _provider.LastExecuteDebug = new QueryDebugInfo()
+            {
+                ExpressionString = expr.ToString(),
+                ExpressionTree = expr.PrintExpressionTree(),
+                SQLStatement = GetQueryText(expr)
+            };
+        }
+
+		private void WriteToLog(string logMessage)
+		{
+			var dbProvider = _provider as DbDataProvider;
+			if (dbProvider != null && dbProvider.Log != null)
+			{
+				dbProvider.Log.WriteLine(logMessage);
+			}
+		}
     }
 }

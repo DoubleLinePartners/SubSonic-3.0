@@ -55,7 +55,7 @@ namespace SubSonic.SqlGeneration.Schema
         /// </summary>
         /// <param name="tableName">Name of the table.</param>
         /// <returns></returns>
-        public virtual string BuildDropTableStatement(string tableName)
+        protected virtual string BuildDropTableStatement(string tableName)
         {
             return string.Format(DROP_TABLE, tableName);
         }
@@ -227,6 +227,26 @@ namespace SubSonic.SqlGeneration.Schema
                 column.DefaultSetting = "";
             else if(column.DataType == DbType.Boolean)
                 column.DefaultSetting = 0;
+        }
+
+        /// <summary>
+        /// Builds a DROP TABLE statement.
+        /// </summary>
+        /// <param name="tableName">Name of the table.</param>
+        /// <returns></returns>
+        public virtual string BuildDropTableStatement(ITable table)
+        {
+            return string.Format(DROP_TABLE, table);
+        }
+
+        public virtual object ConvertDataValueForThisProvider(object input)
+        {
+            return input;
+        }
+
+        public virtual DbType ConvertDataTypeToDbType(DbType dataType)
+        {
+            return dataType;
         }
     }
 }

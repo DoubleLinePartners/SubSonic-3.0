@@ -195,7 +195,7 @@ namespace SubSonic.Extensions
             {
                 if (attr.Accept(result))
                 {
-                    attr.Apply(result);
+                    attr.Apply(result, provider);
                 }
             }
 
@@ -239,7 +239,7 @@ namespace SubSonic.Extensions
                     {
                         if (attr.Accept(column))
                         {
-                            attr.Apply(column);
+                            attr.Apply(column, provider);
                         }
                     }
 

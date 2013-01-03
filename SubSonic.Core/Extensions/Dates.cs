@@ -313,7 +313,6 @@ namespace SubSonic.Extensions
         public static int CountWeekdays(this DateTime startTime, DateTime endTime)
         {
             TimeSpan ts = endTime - startTime;
-            Console.WriteLine(ts.Days);
             int cnt = 0;
             for(int i = 0; i < ts.Days; i++)
             {
@@ -333,7 +332,6 @@ namespace SubSonic.Extensions
         public static int CountWeekends(this DateTime startTime, DateTime endTime)
         {
             TimeSpan ts = endTime - startTime;
-            Console.WriteLine(ts.Days);
             int cnt = 0;
             for(int i = 0; i < ts.Days; i++)
             {

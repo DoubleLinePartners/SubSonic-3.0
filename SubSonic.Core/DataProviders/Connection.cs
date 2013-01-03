@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data;
 
 namespace SubSonic.DataProviders
 {
@@ -84,6 +85,15 @@ namespace SubSonic.DataProviders
             get { return _dataProvider.CurrentSharedConnection; }
         }
 
+        /// <summary>
+        /// Provides access to the transaction open for the shared connection.
+        /// If BeginTransactionScope() has not been called, then this wil return null.
+        /// </summary>
+        public DbTransaction CurrentTransaction
+        {
+            get { return _dataProvider.CurrentSharedTransaction; }
+        }
+
 
         #region IDisposable Members
 
@@ -105,18 +115,56 @@ namespace SubSonic.DataProviders
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         public void Dispose(bool disposing)
         {
-            if(!_disposed)
+			if (!_disposed)
             {
-                if(disposing)
+				_disposed = true;
+				
+                // remove this instance from the stack
+                __instances.Pop();
+
+                // if we are the last instance, reset the connection
+				if (__instances.Count == 0)
+				{
+					// if there is still a transaction open, then roll it back.
+					try
+					{
+						if (_dataProvider.CurrentSharedTransaction != null)
+							_dataProvider.CurrentSharedTransaction.Rollback();
+					}
+					finally
+					{
+						_dataProvider.ResetSharedConnection();
+					}
+				}
+            }
+        }
+
+        /// <summary>
+        /// This can be called to start a transaction against the single shared DbConnection.
+        /// This will allow multiple SubSonic calls to share both a connection, and a transaction.
+        /// This is an alternative to using the Microsoft TransactionScope class, for Databases
+        /// that have compatability issues with Microsoft Transaction Service (MTS), or do not
+        /// want to use MTS at all.
+        /// </summary>
+        public void BeginTransactionScope()
+        {
+            if(_dataProvider.CurrentSharedTransaction == null)
+            {
+                _dataProvider.CurrentSharedTransaction = _dataProvider.CurrentSharedConnection.BeginTransaction();
+            }
+        }
+
+        public void CommitTransaction()
+        {
+            if(_dataProvider.CurrentSharedTransaction != null)
+            {
+                try
                 {
-                    // remove this instance from the stack
-                    __instances.Pop();
-
-                    // if we are the last instance, reset the connection
-                    if(__instances.Count == 0)
-                        _dataProvider.ResetSharedConnection();
-
-                    _disposed = true;
+                    _dataProvider.CurrentSharedTransaction.Commit();
+                }
+                finally
+                {
+                    _dataProvider.CurrentSharedTransaction = null;
                 }
             }
         }
@@ -153,6 +201,9 @@ namespace SubSonic.DataProviders
             }
             else
                 _dbConnection = provider.CreateConnection();
+
+            if (_dbConnection.State != ConnectionState.Open)
+              _dbConnection.Open();
         }
 
         /// <summary>

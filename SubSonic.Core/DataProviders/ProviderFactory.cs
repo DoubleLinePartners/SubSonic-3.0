@@ -17,6 +17,9 @@ using System.Configuration;
 using SubSonic.DataProviders.SqlServer;
 using SubSonic.DataProviders.MySQL;
 using SubSonic.DataProviders.SQLite;
+using SubSonic.DataProviders.Oracle;
+using SubSonic.DataProviders.DB2;
+using System.Diagnostics;
 
 namespace SubSonic.DataProviders
 {
@@ -33,6 +36,9 @@ namespace SubSonic.DataProviders
             defaults.Add("System.Data.SqlClient", (conn, provider) => new SqlServerProvider(conn, provider));
             defaults.Add("MySql.Data.MySqlClient", (conn, provider) => new MySqlProvider(conn, provider));
             defaults.Add("System.Data.SQLite", (conn, provider) => new SQLiteProvider(conn, provider));
+            defaults.Add("System.Data.OracleClient", (conn, provider) => new OracleDataProvider(conn, provider));
+            defaults.Add("Oracle.DataAccess.Client", (conn, provider) => new OracleDataProvider(conn, provider));
+            defaults.Add("IBM.Data.DB2", (conn, provider) => new DB2DataProvider(conn, provider));
             
             return defaults;
         }
@@ -84,7 +90,7 @@ namespace SubSonic.DataProviders
             IDataProvider result = factory(connectionString, providerName);
 
             if(result == null)
-                throw new InvalidOperationException("There is no SubSonic provider for the provider you're using");
+                throw new InvalidOperationException(String.Format("There is no SubSonic provider for providerName {0}", providerName));
 
             return result;
         }
