@@ -21,6 +21,7 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Linq.Expressions;
+using SubSonic.TypeConverters;
 
 
 namespace PetaPoco
@@ -1973,10 +1974,16 @@ namespace PetaPoco
 
 								if (!Columns.TryGetValue(propertyName, out pc))
 								{
-                                    // Convert field name to property name if mapping was provided
-                                    if (columnNames != null && columnNames.Count > 0)
+								    if (columnNames == null)
+								        continue;
+                                    // Oracle may return an extra RN (row number) property as the last column on the data reader
+                                    // so we will assume that we can skip this if it is the last column to avoid an out of index exception
+								    if (i == columnNames.Count)
+								        continue;
+								    // Convert field name to property name if mapping was provided
+                                    if (columnNames.Count > 0)
                                     {
-                                        if (!Columns.TryGetValue(columnNames[i], out pc))
+                                        if (i < columnNames.Count && !Columns.TryGetValue(columnNames[i], out pc))
                                             continue;
                                     }
                                     else
@@ -2084,18 +2091,18 @@ namespace PetaPoco
 
 			private static Func<object, object> GetConverter(bool forceDateTimesToUtc, PocoColumn pc, Type srcType, Type dstType)
 			{
-				Func<object, object> converter = null;
+			    Func<object, object> converter = null; 
 
 				// Get converter from the mapper
-				if (Database.Mapper != null)
+				if (Mapper != null)
 				{
 					if (pc != null)
 					{
-						converter = Database.Mapper.GetFromDbConverter(pc.PropertyInfo, srcType);
+						converter = Mapper.GetFromDbConverter(pc.PropertyInfo, srcType);
 					}
 					else
 					{
-						var m2 = Database.Mapper as IMapper2;
+						var m2 = Mapper as IMapper2;
 						if (m2 != null)
 						{
 							converter = m2.GetFromDbConverter(dstType, srcType);
@@ -2106,22 +2113,31 @@ namespace PetaPoco
 				// Standard DateTime->Utc mapper
 				if (forceDateTimesToUtc && converter == null && srcType == typeof(DateTime) && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
 				{
-					converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
+					converter = src => new DateTime(((DateTime) src).Ticks, DateTimeKind.Utc);
 				}
 
-				// Forced type conversion including integral types -> enum
+                // Force String to Guid Conversion
+			    if (converter == null
+			        && srcType == typeof (String)
+			        && dstType == typeof (Guid))
+			    {
+			        converter = src => new Guid(src.ToString());
+			    }
+
+                // Forced type conversion including integral types -> enum
 				if (converter == null)
 				{
 					if (dstType.IsEnum && IsIntegralType(srcType))
 					{
 						if (srcType != typeof(int))
 						{
-							converter = delegate(object src) { return Convert.ChangeType(src, typeof(int), null); };
+							converter = src => Convert.ChangeType(src, typeof (int), null);
 						}
 					}
 					else if (!dstType.IsAssignableFrom(srcType))
 					{
-						converter = delegate(object src) { return Convert.ChangeType(src, dstType, null); };
+                        converter = ValueTypeConverterService.ChangeTypeFunction(srcType, dstType, true)
+                                    ?? (src => Convert.ChangeType(src, dstType, null));
 					}
 				}
 				return converter;

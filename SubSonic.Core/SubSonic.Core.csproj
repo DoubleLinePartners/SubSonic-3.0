@@ -57,8 +57,12 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Castle.Core, Version=2.5.1.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Castle.Core.2.5.1\lib\NET35\Castle.Core.dll</HintPath>
+    <Reference Include="Castle.Core, Version=3.1.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Castle.Core.3.1.0\lib\net35\Castle.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Castle.Windsor">
+      <HintPath>..\packages\Castle.Windsor.3.1.0\lib\net35\Castle.Windsor.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
@@ -74,17 +78,35 @@
     <Reference Include="System.Data" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\Configurator.cs" />
     <Compile Include="DataProviders\IInterceptionStrategy.cs" />
     <Compile Include="DataProviders\LazyLoadInterceptor.cs" />
+    <Compile Include="DataProviders\DB2\DB2Provider.cs" />
+    <Compile Include="DataProviders\DB2\DB2Formatter.cs" />
+    <Compile Include="DataProviders\DB2\DB2Language.cs" />
+    <Compile Include="DataProviders\DB2\DB2Schema.cs" />
+    <Compile Include="DataProviders\DB2\DB2Generator.cs" />
     <Compile Include="DataProviders\IQueryLanguage.cs" />
     <Compile Include="DataProviders\Log\DelegatingLogAdapter.cs" />
     <Compile Include="DataProviders\Log\ILogAdapter.cs" />
     <Compile Include="DataProviders\Log\TextWriterLogAdapter.cs" />
     <Compile Include="DataProviders\MySQL\MySqlProvider.cs" />
+    <Compile Include="DataProviders\Oracle\OracleDataAccessProvider.cs" />
+    <Compile Include="DataProviders\Oracle\OracleProvider.cs" />
+    <Compile Include="DataProviders\Oracle\OracleFormatter.cs" />
+    <Compile Include="DataProviders\Oracle\OracleGenerator.cs" />
+    <Compile Include="DataProviders\Oracle\OracleLanguage.cs" />
+    <Compile Include="DataProviders\Oracle\OracleSchema.cs" />
     <Compile Include="DataProviders\SqlServer\SqlServerProvider.cs" />
     <Compile Include="DataProviders\SQLite\SQLiteProvider.cs" />
     <Compile Include="Extensions\PetaPoco.cs" />
+    <Compile Include="Extensions\ExpressionExtensions.cs" />
+    <Compile Include="Extensions\IQueryableExtenstions.cs" />
+    <Compile Include="Extensions\TypeExtensions.cs" />
+    <Compile Include="Linq\Structure\IQuery.cs" />
+    <Compile Include="Linq\Structure\QueryList.cs" />
     <Compile Include="Linq\Translation\CountOrderByRemover.cs" />
+    <Compile Include="QueryDebugInfo.cs" />
     <Compile Include="Repository\SimpleRepositoryOptions.cs" />
     <Compile Include="Repository\SimpleRepositoryOptionsExtensions.cs" />
     <Compile Include="Schema\DatabaseRelation.cs" />
@@ -209,6 +231,7 @@
     </Compile>
     <Compile Include="SQLGeneration\SqlFragment.cs" />
     <Compile Include="DataProviders\SQLite\SQLiteGenerator.cs" />
+    <Compile Include="TypeConverters\IValueTypeConverter.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="LICENSE.txt" />
@@ -235,6 +258,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(SolutionDir)Lib\Oracle\*.*" "$(TargetDir)" /Q /Y</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

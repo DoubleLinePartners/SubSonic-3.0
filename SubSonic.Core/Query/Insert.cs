@@ -31,6 +31,8 @@ namespace SubSonic.Query
         internal bool IsExpression;
         internal string ParameterName = String.Empty;
         internal object Value;
+
+        public int MaxLength { get; set; }
     }
 
     /// <summary>
@@ -41,6 +43,7 @@ namespace SubSonic.Query
         private readonly IDataProvider _provider;
         public List<string> ColumnList = new List<string>();
         public List<InsertSetting> Inserts = new List<InsertSetting>();
+        internal SqlQuery SelectValues;
         internal ITable Table;
         private string tableName = "";
 
@@ -163,23 +166,25 @@ namespace SubSonic.Query
             int itemIndex = 0;
             foreach(string s in ColumnList)
             {
-                AddInsertSetting(s, values[itemIndex], DbType.AnsiString, isExpression);
+                AddInsertSetting(s, values[itemIndex], DbType.AnsiString, null,  isExpression);
                 itemIndex++;
             }
 
             return this;
         }
 
-        private void AddInsertSetting(string columnName, object columnValue, DbType dbType, bool isExpression)
+        private void AddInsertSetting(string columnName, object columnValue, DbType dbType, int? maxLenth, bool isExpression)
         {
             InsertSetting setting = new InsertSetting
                                         {
                                             ColumnName = columnName,
-                                            ParameterName = _provider.ParameterPrefix + "ins_" + columnName.ToAlphaNumericOnly(),
+                                            ParameterName = _provider.ParameterPrefix + "ins_" + Guid.NewGuid().ToString().Replace('-','_').Substring(0,25),
                                             Value = columnValue,
                                             IsExpression = isExpression,
-                                            DataType = dbType
+                                            DataType = dbType,
                                         };
+            if (maxLenth.HasValue)
+                setting.MaxLength = maxLenth.Value;
             Inserts.Add(setting);
         }
 
@@ -191,7 +196,7 @@ namespace SubSonic.Query
         /// <returns></returns>
         public Insert Value(string column, object columnValue)
         {
-            AddInsertSetting(column, columnValue, DbType.AnsiString, false);
+            AddInsertSetting(column, columnValue, DbType.AnsiString, null, false);
             ColumnList.Add(column);
             return this;
         }
@@ -205,7 +210,12 @@ namespace SubSonic.Query
         /// <returns></returns>
         public Insert Value(string column, object columnValue, DbType dbType)
         {
-            AddInsertSetting(column, columnValue, dbType, false);
+            return Value(column, columnValue, dbType, null);
+        }
+
+        public Insert Value(string column, object columnValue, DbType dbType, int? dbTypeSize)
+        {
+            AddInsertSetting(column, columnValue, dbType, dbTypeSize, false);
             ColumnList.Add(column);
             return this;
         }
@@ -270,18 +280,19 @@ namespace SubSonic.Query
 
         public QueryCommand GetCommand()
         {
-            string sql = BuildSqlStatement();
-            QueryCommand cmd = new QueryCommand(sql, _provider);
+            var sql = BuildSqlStatement();
+            var cmd = new QueryCommand(sql, _provider);
 
             //add in the commands
-            foreach(InsertSetting s in Inserts)
+            foreach(var s in Inserts)
             {
-                QueryParameter p = new QueryParameter
-                                       {
-                                           ParameterName = s.ParameterName,
-                                           ParameterValue = s.Value ?? DBNull.Value,
-                                           DataType = s.DataType
-                                       };
+                var p = new QueryParameter
+                    {
+                        ParameterName = s.ParameterName,
+                        ParameterValue = s.Value ?? DBNull.Value,
+                        DataType = s.DataType,
+                        Size = s.MaxLength
+                    };
                 cmd.Parameters.Add(p);
             }
             return cmd;

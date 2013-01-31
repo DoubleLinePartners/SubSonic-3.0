@@ -83,32 +83,45 @@ namespace SubSonic.Linq.Structure
             return TypeHelper.GetElementType(TypeHelper.GetMemberType(member));
         }
 
+        public override ITable GetTable(Type rowType)
+        {
+            return Language.DataProvider.FindOrCreateTable(rowType);
+        }
+
+        public override string GetTableName(ITable table)
+        {
+            return Language.DataProvider.QualifyTableName(table);
+        }
+
         public override string GetTableName(Type rowType)
         {
-            
-            string tableName = rowType.Name;
-            ITable tbl = this.Language.DataProvider.FindOrCreateTable(rowType);
+            var table = GetTable(rowType);
 
             //lookup the schema and properly name this thing
-            if(tbl!=null)
-                tableName = this.Language.DataProvider.QualifyTableName(tbl);
-            else
-                tableName=this.Language.Quote(SplitWords(Plural(rowType.Name)));
-            
-            return tableName;
+            return table != null
+                       ? Language.DataProvider.QualifyTableName(table)
+                       : Language.Quote(SplitWords(Plural(rowType.Name)));
+        }
+
+        public override IColumn GetColumn(MemberInfo member)
+        {
+            return Language.DataProvider.FindTable(member.ReflectedType.Name).GetColumnByPropertyName(member.Name);
+        }
+
+        public override string GetColumnName(IColumn column)
+        {
+            return column == null ? string.Empty : column.Name;
         }
 
         public override string GetColumnName(MemberInfo member)
         {
-            string propertyName = member.Name;
-            string result = "";
-            try {
-                IColumn column = this.Language.DataProvider.FindTable(member.ReflectedType.Name).GetColumnByPropertyName(propertyName);
-                result = column == null ? "" : column.Name;
-            } catch {
-
+            try
+            {
+                return GetColumnName(GetColumn(member));
+            } catch
+            {
+                return string.Empty;
             }
-            return result;
         }
 
         public override void GetAssociationKeys(MemberInfo member, out List<MemberInfo> members1, out List<MemberInfo> members2)

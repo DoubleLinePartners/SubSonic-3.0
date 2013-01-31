@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text;
 using SubSonic.Linq.Translation;
 using SubSonic.DataProviders;
+using SubSonic.Schema;
 
 namespace SubSonic.Linq.Structure
 {
@@ -78,6 +79,8 @@ namespace SubSonic.Linq.Structure
         /// <returns></returns>
         public abstract Type GetRelatedType(MemberInfo member);
 
+        public abstract ITable GetTable(Type rowType);
+
         /// <summary>
         /// The name of the corresponding database table
         /// </summary>
@@ -85,6 +88,12 @@ namespace SubSonic.Linq.Structure
         /// <returns></returns>
         public abstract string GetTableName(Type rowType);
 
+        public abstract string GetTableName(ITable table);
+
+
+        public abstract IColumn GetColumn(MemberInfo member);
+
+        public abstract string GetColumnName(IColumn column);
         /// <summary>
         /// The name of the corresponding table column
         /// </summary>
@@ -125,13 +134,14 @@ namespace SubSonic.Linq.Structure
         {
             var tableAlias = new TableAlias();
             var selectAlias = new TableAlias();
-            var table = new TableExpression(tableAlias, this.GetTableName(rowType));
+            var table = GetTable(rowType);
+            var tableExpression = new TableExpression(table, tableAlias, GetTableName(table));
 
-            Expression projector = this.GetTypeProjection(table, rowType);
+            Expression projector = this.GetTypeProjection(tableExpression, rowType);
             var pc = ColumnProjector.ProjectColumns(this.Language.CanBeColumn, projector, null, selectAlias, tableAlias);
 
             return new ProjectionExpression(
-                new SelectExpression(selectAlias, pc.Columns, table, null),
+                new SelectExpression(selectAlias, pc.Columns, tableExpression, null),
                 pc.Projector
                 );
         }
@@ -183,60 +193,61 @@ namespace SubSonic.Linq.Structure
         /// <returns></returns>
         public virtual Expression GetMemberExpression(Expression root, MemberInfo member)
         {
-            if (this.IsRelationship(member))
+            if (IsRelationship(member))
             {
-                Type rowType = this.GetRelatedType(member);
-                ProjectionExpression projection = this.GetTableQuery(rowType);
+                Type rowType = GetRelatedType(member);
+                ProjectionExpression projection = GetTableQuery(rowType);
 
                 // make where clause for joining back to 'root'
                 List<MemberInfo> declaredTypeMembers;
                 List<MemberInfo> associatedMembers;
-                this.GetAssociationKeys(member, out declaredTypeMembers, out associatedMembers);
+                GetAssociationKeys(member, out declaredTypeMembers, out associatedMembers);
 
                 Expression where = null;
                 for (int i = 0, n = associatedMembers.Count; i < n; i++)
                 {
                     Expression equal = Expression.Equal(
-                        this.GetMemberExpression(projection.Projector, associatedMembers[i]),
-                        this.GetMemberExpression(root, declaredTypeMembers[i])
+                        GetMemberExpression(projection.Projector, associatedMembers[i]),
+                        GetMemberExpression(root, declaredTypeMembers[i])
                         );
                     where = (where != null) ? Expression.And(where, equal) : equal;
                 }
 
                 TableAlias newAlias = new TableAlias();
-                var pc = ColumnProjector.ProjectColumns(this.Language.CanBeColumn, projection.Projector, null, newAlias, projection.Source.Alias);
+                var pc = ColumnProjector.ProjectColumns(this.Language.CanBeColumn,
+                                                        projection.Projector,
+                                                        null,
+                                                        newAlias,
+                                                        projection.Source.Alias);
 
-                LambdaExpression aggregator = this.GetAggregator(TypeHelper.GetMemberType(member), typeof(IEnumerable<>).MakeGenericType(pc.Projector.Type));
+                LambdaExpression aggregator = GetAggregator(TypeHelper.GetMemberType(member),
+                                                                 typeof (IEnumerable<>).MakeGenericType(
+                                                                     pc.Projector.Type));
                 return new ProjectionExpression(
                     new SelectExpression(newAlias, pc.Columns, projection.Source, where),
-                    pc.Projector, aggregator
+                    pc.Projector,
+                    aggregator
                     );
             }
-            else
+            var tableExpression = root as TableExpression;
+            if (tableExpression != null)
             {
-                TableExpression table = root as TableExpression;
-                if (table != null)
+                if (IsColumn(member))
                 {
-                    if (this.IsColumn(member))
-                    {
-                        string columnName = this.GetColumnName(member);
-                        if (!string.IsNullOrEmpty(columnName)) {
-                            return new ColumnExpression(TypeHelper.GetMemberType(member), table.Alias, this.GetColumnName(member));
-
-                        } else {
-                            return root;
-                        }
-                    }
-                    else
-                    {
-                        return this.GetTypeProjection(root, TypeHelper.GetMemberType(member));
-                    }
+                    IColumn column = null;
+                    if (tableExpression.Table != null)
+                        column = tableExpression.Table.GetColumnByPropertyName(member.Name);
+                    var columnName = column != null ? GetColumnName(column) : GetColumnName(member);
+                    return !string.IsNullOrEmpty(columnName)
+                               ? new ColumnExpression(column,
+                                                      TypeHelper.GetMemberType(member),
+                                                      tableExpression.Alias,
+                                                      columnName)
+                               : root;
                 }
-                else
-                {
-                    return QueryBinder.BindMember(root, member);
-                }
+                return this.GetTypeProjection(root, TypeHelper.GetMemberType(member));
             }
+            return QueryBinder.BindMember(root, member);
         }
 
         /// <summary>

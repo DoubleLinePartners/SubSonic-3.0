@@ -189,8 +189,10 @@ namespace SubSonic.Query
                             var dbCommand = cmd.ToDbCommand();
                             dbCommand.Connection = scope.Connection;
                             dbCommand.Transaction = trans;
-
+                            dbCommand.CommandText = dbCommand.CommandText.Replace("\r\n", " ");
+                            
                             dbCommand.ExecuteNonQuery();
+                            
                         }
                     }
                     trans.Commit();

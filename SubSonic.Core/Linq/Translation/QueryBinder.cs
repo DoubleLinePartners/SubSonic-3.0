@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -762,7 +763,7 @@ namespace SubSonic.Linq.Translation
                 List<Expression> values = new List<Expression>();
                 foreach (object value in (IEnumerable) constSource.Value)
                 {
-                    values.Add(Expression.Constant(Convert.ChangeType(value, match.Type), match.Type));
+                    values.Add(Expression.Constant(ChangeType(value, match.Type), match.Type));
                 }
                 match = Visit(match);
                 return new InExpression(match, values);
@@ -778,6 +779,31 @@ namespace SubSonic.Linq.Translation
                 }
                 return result;
             }
+        }
+
+        /// <summary>
+        /// This wrapper around Convert.ChangeType was done to handle nullable types.
+        /// See original authors work here: http://aspalliance.com/852
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="conversionType"></param>
+        /// <returns></returns>
+        public static object ChangeType(object value, Type conversionType)
+        {
+            if (conversionType == null)
+            {
+                throw new ArgumentNullException("conversionType");
+            }
+            if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+            {
+                if (value == null)
+                {
+                    return null;
+                }
+                var nullableConverter = new NullableConverter(conversionType);
+                conversionType = nullableConverter.UnderlyingType;
+            }
+            return Convert.ChangeType(value, conversionType);
         }
 
         private Expression GetSingletonSequence(Expression expr, string aggregator)

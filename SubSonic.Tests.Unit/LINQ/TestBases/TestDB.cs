@@ -13,11 +13,13 @@ namespace SubSonic.Tests.Unit.Linq.TestBases
     public class TestDB : IQuerySurface
     {
         private IDataProvider _provider;
+		private DbQueryProvider _queryProvider;
         public TestDB(string connection, string provider) : this(ProviderFactory.GetProvider(connection, provider)) { }
 
         public TestDB(IDataProvider provider)
         {
             _provider = provider;
+			_queryProvider = new DbQueryProvider(_provider);
 
             Products = new Query<Product>(provider);
             Customers = new Query<Customer>(provider);
@@ -118,6 +120,11 @@ namespace SubSonic.Tests.Unit.Linq.TestBases
         public IDataProvider Provider
         {
             get { return _provider; }
+        }
+
+        public DbQueryProvider QueryProvider
+        {
+            get { return _queryProvider; }
         }
 
         public Select Select

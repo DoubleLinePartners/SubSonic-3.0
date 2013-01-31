@@ -12,6 +12,9 @@
 //   rights and limitations under the License.
 // 
 using System;
+using SubSonic.DataProviders;
+using SubSonic.DataProviders.Oracle;
+using SubSonic.SqlGeneration.Schema;
 
 namespace SubSonic.Tests.TestClasses
 {

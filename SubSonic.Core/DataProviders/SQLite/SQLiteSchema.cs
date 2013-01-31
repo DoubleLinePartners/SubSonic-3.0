@@ -31,7 +31,7 @@ namespace SubSonic.DataProviders.SQLite
             CREATE_TABLE = "CREATE TABLE `{0}` ({1} \r\n);";
             //can't do this
             DROP_COLUMN = @"";
-            DROP_TABLE = @"DROP TABLE {0};";
+            DROP_TABLE = @"DROP TABLE `{0}`;";
 
             UPDATE_DEFAULTS = @"UPDATE `{0}` SET `{1}`={2};";
 

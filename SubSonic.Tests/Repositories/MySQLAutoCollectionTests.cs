@@ -9,7 +9,7 @@ namespace SubSonic.Tests.Repositories
     public class MySQLAutoCollectionTests : AutoCollectionTests
     {
         public MySQLAutoCollectionTests() :
-            base(ProviderFactory.GetProvider(@"server=localhost;database=SubSonic;user id=root; password=;", "MySql.Data.MySqlClient"))
+            base(ProviderFactory.GetProvider(@"server=localhost;database=SubSonic;user id=root; password=password;", "MySql.Data.MySqlClient"))
         {}
     }
 }

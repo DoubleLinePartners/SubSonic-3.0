@@ -1,0 +1,1 @@
+ILMerge.exe /internalize /target:library /out:Subsonic.Core.dll ..\..\SubSonic.Core\bin\Debug\Subsonic.Core.dll ..\..\SubSonic.Core\bin\Debug\Castle.Core.dll ..\..\SubSonic.Core\bin\Debug\Castle.Windsor.dll

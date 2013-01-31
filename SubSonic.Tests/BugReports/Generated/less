@@ -1,0 +1,87 @@
+diff --git a/SubSonic.Tests/App.config b/SubSonic.Tests/App.config
+index c9220e9..a4c10dd 100644
+--- a/SubSonic.Tests/App.config
++++ b/SubSonic.Tests/App.config
+@@ -1,29 +1,19 @@
+-﻿<?xml version="1.0" encoding="utf-8" ?>
++<?xml version="1.0"?>
+ <configuration>
+   <connectionStrings>
+-      <add name="WestWindTest"
+-           connectionString="Test"
+-           providerName="System.Data.SqlClient"/>
+-      <add name="WestWind" 
+-         connectionString="server=.\SQLExpress;database=SubSonic;integrated security=true;" 
+-         providerName="System.Data.SqlClient"/>
+-      <add name="Northwind"
+-        connectionString="server=.\SQLExpress;database=Northwind;integrated security=true;"
+-        providerName="System.Data.SqlClient"/>
++      <add name="WestWindTest" connectionString="Test" providerName="System.Data.SqlClient"/>
++      <add name="WestWind" connectionString="server=.\SQLExpress;database=SubSonic;integrated security=true;" providerName="System.Data.SqlClient"/>
++      <add name="Northwind" connectionString="server=.\SQLExpress;database=Northwind;integrated security=true;" providerName="System.Data.SqlClient"/>
+   </connectionStrings>
+   <system.data>
+     <DbProviderFactories>
+-        <clear />
++        <clear/>
+       <add name="MySQL Data Provider" description="ADO.Net driver for MySQL" invariant="MySql.Data.MySqlClient" type="MySql.Data.MySqlClient.MySqlClientFactory, MySql.Data"/>
+-      <add name="SQLite Data Provider" description=".Net Framework Data Provider for SQLite" invariant="System.Data.SQLite" type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite" />
+-      <add name="SqlClient Data Provider"
+-             invariant="System.Data.SqlClient"
+-             description=".Net Framework Data Provider for SqlServer"
+-             type="System.Data.SqlClient.SqlClientFactory, System.Data, 
+-             Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+-    />
+-      <add name="Oracle Data Provider for .NET" invariant="Oracle.DataAccess.Client" description="Oracle Data Provider for .NET" type="Oracle.DataAccess.Client.OracleClientFactory, Oracle.DataAccess, Version=2.111.7.20, Culture=neutral, PublicKeyToken=89b483f429c47342" />
+-      <add name="OracleClient Data Provider" invariant="System.Data.OracleClient" description=".Net Framework Data Provider for Oracle" type="System.Data.OracleClient.OracleClientFactory, System.Data.OracleClient, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
++      <add name="SQLite Data Provider" description=".Net Framework Data Provider for SQLite" invariant="System.Data.SQLite" type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite"/>
++      <add name="SqlClient Data Provider" invariant="System.Data.SqlClient" description=".Net Framework Data Provider for SqlServer" type="System.Data.SqlClient.SqlClientFactory, System.Data, 
++             Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"/>
++      <add name="Oracle Data Provider for .NET" invariant="Oracle.DataAccess.Client" description="Oracle Data Provider for .NET" type="Oracle.DataAccess.Client.OracleClientFactory, Oracle.DataAccess, Version=4.112.2.0, Culture=neutral, PublicKeyToken=89b483f429c47342"/>
++      <add name="OracleClient Data Provider" invariant="System.Data.OracleClient" description=".Net Framework Data Provider for Oracle" type="System.Data.OracleClient.OracleClientFactory, System.Data.OracleClient, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"/>
+     </DbProviderFactories>
+   </system.data>
+-</configuration>
++<startup><supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.0"/></startup></configuration>
+diff --git a/SubSonic.Tests/LINQ/OracleTests.cs b/SubSonic.Tests/LINQ/OracleTests.cs
+index 4135c5f..f31b3fa 100644
+--- a/SubSonic.Tests/LINQ/OracleTests.cs
++++ b/SubSonic.Tests/LINQ/OracleTests.cs
+@@ -31,7 +31,7 @@ namespace SubSonic.Tests.Linq
+     {
+         public OracleSelectTests()
+         {
+-            _db = new TestDB(TestConfiguration.OracleTestConnectionString, DbClientTypeName.Oracle);
++            _db = new TestDB(TestConfiguration.OracleTestConnectionString, DbClientTypeName.OracleDataAccess);
+             var setup = new Setup(_db.Provider);
+             setup.DropTestTables();
+             setup.CreateTestTable();
+diff --git a/SubSonic.Tests/SubSonic.Tests.csproj b/SubSonic.Tests/SubSonic.Tests.csproj
+index d7a33f9..1c309c5 100644
+--- a/SubSonic.Tests/SubSonic.Tests.csproj
++++ b/SubSonic.Tests/SubSonic.Tests.csproj
+@@ -10,7 +10,7 @@
+     <AppDesignerFolder>Properties</AppDesignerFolder>
+     <RootNamespace>SubSonic.Tests</RootNamespace>
+     <AssemblyName>SubSonic.Tests</AssemblyName>
+-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
++    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+     <FileAlignment>512</FileAlignment>
+     <FileUpgradeFlags>
+     </FileUpgradeFlags>
+@@ -33,6 +33,7 @@
+     <BootstrapperEnabled>true</BootstrapperEnabled>
+     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+     <RestorePackages>true</RestorePackages>
++    <TargetFrameworkProfile />
+   </PropertyGroup>
+   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+     <DebugSymbols>true</DebugSymbols>
+@@ -44,6 +45,7 @@
+     <WarningLevel>4</WarningLevel>
+     <NoWarn>169</NoWarn>
+     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
++    <PlatformTarget>AnyCPU</PlatformTarget>
+   </PropertyGroup>
+   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+     <DebugType>pdbonly</DebugType>

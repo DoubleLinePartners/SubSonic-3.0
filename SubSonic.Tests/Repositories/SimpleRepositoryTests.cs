@@ -34,7 +34,7 @@ namespace SubSonic.Tests.Repositories
             get { return new string[] { "1.00", "2.00", "3.00" }; }
         }
 
-        public SimpleRepositoryTests(IDataProvider provider)
+        protected SimpleRepositoryTests(IDataProvider provider)
         {
             provider.SetLogger(new TextWriterLogAdapter(Console.Out));
             _repo = new SimpleRepository(provider, SimpleRepositoryOptions.RunMigrations);
@@ -43,7 +43,7 @@ namespace SubSonic.Tests.Repositories
                             "Shwerkos", "DummyForDeletes", "Shwerko2s", "Shwerko3s", "NonAutoIncrementingIdWithDefaultSettings");            
         }
 
-        public SimpleRepositoryTests(IRepository repo)
+        protected SimpleRepositoryTests(IRepository repo)
         {
             _repo = repo;
         }
@@ -58,7 +58,7 @@ namespace SubSonic.Tests.Repositories
             return CreateTestRecord<Shwerko>(key, withValuesApplied);
         }
 
-        private T CreateTestRecord<T>(Guid key) where T : IShwerko, new()
+        protected T CreateTestRecord<T>(Guid key) where T : IShwerko, new()
         {
             return CreateTestRecord<T>(key, x => { });
         }
@@ -79,7 +79,7 @@ namespace SubSonic.Tests.Repositories
         }
 
         [Fact]
-        public void imple_Repo_Should_Create_Schema_And_Save_Shwerko()
+        public void Simple_Repo_Should_Create_Schema_And_Save_Shwerko()
         {
             var id = Guid.NewGuid();
             var item = CreateTestRecord(id);
@@ -102,6 +102,18 @@ namespace SubSonic.Tests.Repositories
 
             item = _repo.Single<Shwerko>(x => x.Key == id);
             Assert.Equal(id, item.Key);
+        }
+
+        [Fact]
+        public void Simple_Repo_Should_Get_All_Filtered_By_Guid()
+        {
+            var id = Guid.NewGuid();
+            var item = CreateTestRecord(id);
+            _repo.Add(item);
+
+            var result = _repo.All<Shwerko>().Where(x => x.Key == id).ToList();
+
+            Assert.Equal(1, result.Count);
         }
 
         [Fact]
@@ -342,13 +354,13 @@ namespace SubSonic.Tests.Repositories
             Assert.Equal("aaa", paged[2].Name);
         }
 
-        private void GivenShwerkosWithNames(params string[] names)
+        protected void GivenShwerkosWithNames(params string[] names)
         {
             var shwerkos = names.Select(x => new Shwerko { Name = x, ElDate = new DateTime(2010, 1, 1) });
 
             _repo.AddMany(shwerkos);
         }
-		  private void GivenShwerkos3WithValues(params decimal[] values)
+		  protected void GivenShwerkos3WithValues(params decimal[] values)
 		  {
 			  var shwerkos = values.Select(x => new Shwerko3 { Name = "Test", ElDate = new DateTime(2010, 1, 1), FunkyName = x });
 
@@ -519,14 +531,13 @@ namespace SubSonic.Tests.Repositories
         public void Simple_Repo_Should_Select_Anonymous_Types()
         {
             var key = Guid.NewGuid();
-            int id = (int)_repo.Add(CreateTestRecord(key));
+            _repo.Add(CreateTestRecord(key));
 
             var result = (from s in _repo.All<Shwerko>()
                          select new { ID = s.ID, Key = s.Key }).ToArray();
 
             Assert.Equal(1, result.Count());
             Assert.Equal(key, result[0].Key);
-            Assert.Equal(id, result[0].ID);
         }
 
         [Fact]
@@ -566,6 +577,60 @@ namespace SubSonic.Tests.Repositories
                           select y).ToList();
 
             Assert.Equal(1, result.Count);
+            Assert.Equal("Common", result[0].Name);
+        }
+
+        [Serializable]
+        public class ValueModel
+        {
+            public int Id { get; set; }
+            public string Code { get; set; }
+        }
+
+        [Fact]
+        public void Simple_Repo_Should_Support_Joins_And_Projections()
+        {
+            GivenShwerkoAndShwerko2WithName("Common");
+
+            var result =  (from x in _repo.All<Shwerko>()
+                          
+                          orderby x.ElDate descending
+                           select new ValueModel
+                           {
+                               Id = x.NullInt.GetValueOrDefault(0),
+                               Code = x.Name,
+                           }).ToList();
+
+            Assert.Equal(1, result.Count);
+            Assert.Equal("Common", result[0].Code);
+            
+        }
+
+        [Serializable]
+        public class ValueModel2
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string Code { get; set; }
+        }
+
+        [Fact]
+        public void Simple_Repo_Should_Support_Joins_And_Projections_2()
+        {
+            GivenShwerkoAndShwerko2WithName("Common");
+
+            var result = (from x in _repo.All<Shwerko>()
+
+                          orderby x.ElDate descending
+                          select new ValueModel2
+                          {
+                              Id = x.NullInt.GetValueOrDefault(0),
+                              Code = x.Name,
+                              Name = x.Name,
+                          }).ToList();
+
+            Assert.Equal(1, result.Count);
+            Assert.Equal("Common", result[0].Code);
             Assert.Equal("Common", result[0].Name);
         }
 
@@ -648,7 +713,7 @@ namespace SubSonic.Tests.Repositories
 			  Assert.Equal(1, count);
 		  }
 
-    	private void GivenShwerkoAndShwerko2WithName(string name)
+    	protected void GivenShwerkoAndShwerko2WithName(string name)
         {
             var shwerko = CreateTestRecord<Shwerko>(Guid.NewGuid(), s => s.Name = name);
             _repo.Add(shwerko);

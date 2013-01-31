@@ -72,8 +72,15 @@ namespace SubSonic.Tests.Linq
         [Fact]
         public void First_Product_Should_Have_ProductID_1()
         {
-            Assert.True(_db.Products.First().ProductID == 1);
+            Assert.True(_db.Products.OrderBy(p=> p.ProductID).First().ProductID == 1);
         }      
+
+        [Fact]
+        public void Select_Using_Guid_Parameter()
+        {
+            var retrievedProduct = _db.Products.First();
+            Assert.True(_db.Products.Where(product => product.Sku == retrievedProduct.Sku).ToList().Any());
+        }
 
         [Fact]
         public void Select_Single_Product_With_ID_1()

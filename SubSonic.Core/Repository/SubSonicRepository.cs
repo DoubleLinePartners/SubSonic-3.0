@@ -19,6 +19,7 @@ using SubSonic.Extensions;
 using SubSonic.DataProviders;
 using SubSonic.Query;
 using SubSonic.Schema;
+using System.Reflection;
 
 namespace SubSonic.Repository
 {
@@ -53,13 +54,16 @@ namespace SubSonic.Repository
 				/// <returns></returns>
 				public bool Load<T>(T item, string column, object value) where T : class, new()
 				{
+          PropertyInfo[] cachedProps = typeof(T).GetProperties();
+          FieldInfo[] cachedFields = typeof(T).GetFields();
+
 					var qry = _db.Select.From(GetTable()).Where(column).IsEqualTo(value);
 					bool loaded = false;
 					using (var rdr = qry.ExecuteReader())
 					{
 						if (rdr.Read())
 						{
-							rdr.Load(item, null);//mike added null as ColumnNames not known
+							rdr.Load(item, null, cachedProps, cachedFields);//mike added null as ColumnNames not known
 							loaded = true;
 						}
 						rdr.Dispose();
@@ -76,13 +80,16 @@ namespace SubSonic.Repository
         /// <returns></returns>
 				public bool Load<T>(T item, Expression<Func<T, bool>> expression) where T : class, new()
 				{
+          PropertyInfo[] cachedProps = typeof(T).GetProperties();
+          FieldInfo[] cachedFields = typeof(T).GetFields();
+
 					var qry = _db.Select.From(GetTable()).Where(expression);
 					bool loaded = false;
 					using (var rdr = qry.ExecuteReader())
 					{
 						if (rdr.Read())
 						{
-							rdr.Load(item, null);//mike added null as ColumnNames not known
+							rdr.Load(item, null, cachedProps, cachedFields);//mike added null as ColumnNames not known
 							loaded = true;
 						}
 						rdr.Dispose();

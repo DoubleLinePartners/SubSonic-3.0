@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using SubSonic.Extensions;
 using SubSonic.Tests.Unit.Linq.SqlStrings;
 using Xunit;
 

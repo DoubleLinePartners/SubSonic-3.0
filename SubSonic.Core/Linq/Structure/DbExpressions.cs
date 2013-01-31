@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using SubSonic.Linq.Translation;
+using SubSonic.Schema;
 
 namespace SubSonic.Linq.Structure
 {
@@ -81,7 +82,9 @@ namespace SubSonic.Linq.Structure
     /// </summary>
     public class TableExpression : AliasedExpression
     {
-        string name;
+        private readonly ITable _table;
+        readonly string name;
+        
 
         public TableExpression(TableAlias alias, string name)
             : base(DbExpressionType.Table, typeof(void), alias)
@@ -89,9 +92,19 @@ namespace SubSonic.Linq.Structure
             this.name = name;
         }
 
+        public TableExpression(ITable table, TableAlias alias, string name) : this(alias, name)
+        {
+            _table = table;
+        }
+
         public string Name
         {
             get { return this.name; }
+        }
+
+        public ITable Table
+        {
+            get { return _table; }
         }
 
         public override string ToString()
@@ -105,34 +118,46 @@ namespace SubSonic.Linq.Structure
     /// </summary>
     public class ColumnExpression : DbExpression, IEquatable<ColumnExpression>
     {
-        TableAlias alias;
-        string name;
+        private readonly IColumn _column;
+        private readonly TableAlias _alias;
+        private readonly string _name;
+
+        public ColumnExpression(IColumn column, Type type, TableAlias alias, string name)
+            : this(type, alias, name)
+        {
+            _column = column;
+        }
 
         public ColumnExpression(Type type, TableAlias alias, string name)
             : base(DbExpressionType.Column, type)
         {
-            this.alias = alias;
-            this.name = name;
+            _alias = alias;
+            _name = name;
         }
 
         public TableAlias Alias
         {
-            get { return this.alias; }
+            get { return _alias; }
         }
 
         public string Name
         {
-            get { return this.name; }
+            get { return _name; }
+        }
+
+        public IColumn Column
+        {
+            get { return _column; }
         }
 
         public override string ToString()
         {
-            return this.Alias.ToString() + ".C(" + this.name + ")";
+            return Alias + ".C(" + this._name + ")";
         }
 
         public override int GetHashCode()
         {
-            return alias.GetHashCode() + name.GetHashCode();
+            return _alias.GetHashCode() + _name.GetHashCode();
         }
 
         public override bool Equals(object obj)
@@ -143,7 +168,7 @@ namespace SubSonic.Linq.Structure
         public bool Equals(ColumnExpression other)
         {
             return other != null && 
-                (((object)this == (object)other) || (alias == other.alias && name == other.Name));
+                ((this == other) || (_alias == other._alias && _name == other.Name));
         }
     }
 
@@ -603,6 +628,8 @@ namespace SubSonic.Linq.Structure
         {
             get { return this.value; }
         }
+
+        public Func<ConstantExpression, Expression> ParameterBindingAction { get; set; }
     }
 
     /// <summary>

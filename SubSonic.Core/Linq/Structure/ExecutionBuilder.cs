@@ -12,6 +12,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using SubSonic.Linq.Translation;
+using SubSonic.TypeConverters;
 
 namespace SubSonic.Linq.Structure
 {
@@ -219,7 +220,7 @@ namespace SubSonic.Linq.Structure
             okayToDefer &= (receivingMember != null && policy.IsDeferLoaded(receivingMember));
 
             // parameterize query
-            projection = (ProjectionExpression) Parameterizer.Parameterize(projection);
+            projection = (ProjectionExpression)policy.Mapping.Language.Parameterize(projection);
 
             if (scope != null)
             {
@@ -234,9 +235,11 @@ namespace SubSonic.Linq.Structure
             scope = saveScope;
 			List<string> columnNames = ColumnNamedGatherer.Gather(projector.Body);//mike
             string commandText = policy.Mapping.Language.Format(projection.Source);
-            ReadOnlyCollection<NamedValueExpression> namedValues = NamedValueGatherer.Gather(projection.Source);
-            string[] names = namedValues.Select(v => v.Name).ToArray();
-            Expression[] values = namedValues.Select(v => Expression.Convert(Visit(v.Value), typeof (object))).ToArray();
+            var namedValues = NamedValueGatherer.Gather(projection.Source);
+            var names = namedValues.Select(v => v.Name).ToArray();
+		    Expression[] values = namedValues.Select(v => Expression.Convert(
+		        v.ParameterBindingAction != null ? v.ParameterBindingAction((ConstantExpression)v.Value) : Visit(v.Value),
+		        typeof (object))).ToArray();
 
             string methExecute = okayToDefer
                                      ? "ExecuteDeferred"
@@ -297,7 +300,7 @@ namespace SubSonic.Linq.Structure
         {
             ParameterExpression reader;
             int iOrdinal;
-
+            
             if (scope.TryGetValue(column, out reader, out iOrdinal))
             {
                 Expression defvalue;
@@ -312,13 +315,25 @@ namespace SubSonic.Linq.Structure
 
                 // this sucks, but since we don't track true SQL types through the query, and ADO throws exception if you
                 // call the wrong accessor, the best we can do is call GetValue and Convert.ChangeType
-                Expression value = Expression.Convert(
-                    Expression.Call(typeof (Convert), "ChangeType", null,
-                                    Expression.Call(reader, "GetValue", null, Expression.Constant(iOrdinal)),
-                                    Expression.Constant(TypeHelper.GetNonNullableType(column.Type), typeof(Type))
-                        ),
-                    column.Type
-                    );
+                //Expression value = Expression.Convert(
+                //    Expression.Call(typeof (Convert), "ChangeType", null,
+                //                    Expression.Call(reader, "GetValue", null, Expression.Constant(iOrdinal)),
+                //                    Expression.Constant(TypeHelper.GetNonNullableType(column.Type), typeof(Type))
+                //        ),
+                //    column.Type
+                //    );
+
+                Expression value = Expression.Convert(Expression.Call(typeof (ValueTypeConverterService),
+                                                                      "ChangeType",
+                                                                      null,
+                                                                      Expression.Call(reader,
+                                                                                      "GetValue",
+                                                                                      null,
+                                                                                      Expression.Constant(iOrdinal)),
+                                                                      Expression.Constant(
+                                                                          TypeHelper.GetNonNullableType(column.Type),
+                                                                          typeof (Type))),
+                                                      column.Type);
 
                 return Expression.Condition(
                     Expression.Call(reader, "IsDBNull", null, Expression.Constant(iOrdinal)),
