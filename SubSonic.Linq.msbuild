@@ -19,6 +19,7 @@
   <ItemGroup>
     <inputAssemblies Include="$(buildDir)\$(subsonicLib)" />
     <inputAssemblies Include="$(buildDir)\Castle.Core.dll" />
+    <inputAssemblies Include="$(buildDir)\Castle.Windsor.dll" />
   </ItemGroup>
 
   <UsingTask AssemblyFile="lib\xunit.runner.msbuild.dll" TaskName="Xunit.Runner.MSBuild.xunit" />
