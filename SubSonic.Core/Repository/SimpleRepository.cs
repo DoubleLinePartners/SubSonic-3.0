@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using SubSonic.DataProviders.Oracle;
 using SubSonic.Extensions;
 using SubSonic.DataProviders;
 using SubSonic.Query;
@@ -288,6 +289,28 @@ namespace SubSonic.Repository
             var qry = new Delete<T>(_provider).From<T>();
 
             var constraints = expression.ParseConstraints().ToList();
+
+            // Oracle fix for column names in DELETE sql statement.
+            if (_provider is OracleDataAccessProvider)
+            {
+                if (tbl != null)
+                {
+                    foreach (var constraint in constraints)
+                    {
+                        IColumn column = tbl.GetColumnByPropertyName(constraint.ColumnName);
+
+                        if (column != null)
+                        {
+                            constraint.ColumnName = column.Name;
+                            constraint.ConstructionFragment = column.Name;
+                            constraint.ParameterName = column.Name;
+                            constraint.QualifiedColumnName = column.Name;
+                        }
+                    }
+                }
+            }
+            // end Oracle fix
+
             qry.Constraints = constraints;
 
             return qry.Execute();

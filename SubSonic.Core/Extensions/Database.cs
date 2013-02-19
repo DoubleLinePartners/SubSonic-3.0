@@ -511,7 +511,7 @@ namespace SubSonic.Extensions
             //add the PK constraint
             Constraint c = new Constraint(ConstraintType.Where, tbl.PrimaryKey.Name)
                                {
-                                   ParameterValue = settings[tbl.PrimaryKey.Name],
+                                   ParameterValue = settings[tbl.PrimaryKey.PropertyName],
                                    ParameterName = tbl.PrimaryKey.Name,
                                    ConstructionFragment = tbl.PrimaryKey.Name
                                };
