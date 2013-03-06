@@ -20,7 +20,7 @@ namespace SubSonic.Linq.Translation
     /// </summary>
     public class Parameterizer : DbExpressionVisitor
     {
-        protected Dictionary<object, NamedValueExpression> map = new Dictionary<object, NamedValueExpression>();
+        protected Dictionary<object, List<NamedValueExpression>> map = new Dictionary<object, List<NamedValueExpression>>();
         protected Dictionary<Expression, NamedValueExpression> pmap = new Dictionary<Expression,NamedValueExpression>();
         protected int iParam = 0;
 
@@ -56,18 +56,21 @@ namespace SubSonic.Linq.Translation
 
         protected NamedValueExpression GetExistingNamedValue(ConstantExpression expression)
         {
-            NamedValueExpression nv;
-            if (map.TryGetValue(GetKeyNameForConstantExpression(expression), out nv))
+            List<NamedValueExpression> nvItems;
+            if (map.TryGetValue(GetKeyNameForConstantExpression(expression), out nvItems))
+            {
+                NamedValueExpression nv = nvItems[0];
                 if (nv.Value.Type == expression.Type)
                     return nv;
+            }
             return null;
         }
 
-        protected NamedValueExpression CreateNamedValueForConstant(ConstantExpression expression)
+        protected virtual NamedValueExpression CreateNamedValueForConstant(ConstantExpression expression)
         {
             var name = "p" + (iParam++);
             var nv = new NamedValueExpression(name, expression);
-            map.Add(GetKeyNameForConstantExpression(expression), nv);
+            map.Add(GetKeyNameForConstantExpression(expression), new List<NamedValueExpression> { nv });
             return nv;
         }
 
@@ -140,9 +143,7 @@ namespace SubSonic.Linq.Translation
         {
             if (c.Value != null && doParameterization)
             {
-                var nv = GetExistingNamedValue(c);
-                if (nv == null)
-                    nv = CreateNamedValueForConstant(c);
+                var   nv = CreateNamedValueForConstant(c);
                 return nv;
             }
             return c;
@@ -175,6 +176,19 @@ namespace SubSonic.Linq.Translation
                 return new SelectExpression(select.Alias, columns, from, where, orderBy, groupBy, select.IsDistinct, skip, take);
             }
             return select;
+        }
+
+        protected override NamedValueExpression CreateNamedValueForConstant(ConstantExpression expression)
+        {
+            var name = "p" + (iParam++);
+            var nv = new NamedValueExpression(name, expression);
+            var keyNameForConstantExpression = GetKeyNameForConstantExpression(expression);
+            List<NamedValueExpression> nvList;
+            if (map.TryGetValue(keyNameForConstantExpression, out nvList))
+                nvList.Add(nv);
+            else 
+                map.Add(keyNameForConstantExpression, new List<NamedValueExpression> { nv });
+            return nv;
         }
     }
 

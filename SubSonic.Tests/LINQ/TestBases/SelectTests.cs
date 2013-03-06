@@ -111,7 +111,14 @@ namespace SubSonic.Tests.Linq
         {
             var result = _db.Orders.Sum(x => x.OrderID);
             Assert.Equal(5050, result);
-        }     
+        }
+
+        [Fact]
+        public void Should_work_with_repeated_parameter()
+        {
+            var result = _db.Customers.All(c => c.ContactName.StartsWith("x") && c.City.Contains("x"));
+            Assert.False(result);
+        }
     }
 
     // ReSharper restore InconsistentNaming
