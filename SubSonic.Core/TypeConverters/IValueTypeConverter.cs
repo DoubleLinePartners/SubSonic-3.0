@@ -50,6 +50,14 @@ namespace SubSonic.TypeConverters
         }
     }
 
+    public class DecimalToInt64ValueTypeConverter : IValueTypeConverter<Decimal, long>
+    {
+        public long Convert(Decimal value)
+        {
+            return (long) value;
+        }
+    }
+
     public class DecimalToInt32ValueTypeConverter: IValueTypeConverter<Decimal, int>
     {
         public int Convert(Decimal value)
