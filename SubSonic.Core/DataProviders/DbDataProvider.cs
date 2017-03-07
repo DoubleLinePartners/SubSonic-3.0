@@ -55,6 +55,8 @@ namespace SubSonic.DataProviders
             // TODO: Schema is specific to SQL Server?
             Schema = new DatabaseSchema();
 
+            CommandTimeoutProvider = new CommandTimeoutProvider();
+
 			InterceptionStrategy = new DynamicProxyInterceptionStrategy(this);
         }
 
@@ -82,6 +84,8 @@ namespace SubSonic.DataProviders
 
 
         #region IDataProvider Members
+
+        private CommandTimeoutProvider CommandTimeoutProvider { get; set; }
 
         public abstract ISchemaGenerator SchemaGenerator { get; }
         
@@ -156,6 +160,7 @@ namespace SubSonic.DataProviders
                 cmd.Transaction = CurrentSharedTransaction;
             cmd.CommandText = qry.CommandSql;
             cmd.CommandType = qry.CommandType;
+            cmd.CommandTimeout = CommandTimeoutProvider.Timeout;
 
             AddParams(cmd, qry);
 
@@ -187,6 +192,7 @@ namespace SubSonic.DataProviders
             DbCommand cmd = Factory.CreateCommand();
             cmd.CommandText = qry.CommandSql;
             cmd.CommandType = qry.CommandType;
+            cmd.CommandTimeout = CommandTimeoutProvider.Timeout;
             DataSet ds = new DataSet();
 
             using(AutomaticConnectionScope scope = new AutomaticConnectionScope(this))
@@ -216,6 +222,7 @@ namespace SubSonic.DataProviders
                     cmd.Transaction = CurrentSharedTransaction;
                 cmd.CommandType = qry.CommandType;
                 cmd.CommandText = qry.CommandSql;
+                cmd.CommandTimeout = CommandTimeoutProvider.Timeout;
                 AddParams(cmd, qry);
                 result = cmd.ExecuteScalar();
             }
@@ -255,6 +262,7 @@ namespace SubSonic.DataProviders
                     cmd.Transaction = CurrentSharedTransaction;
                 cmd.CommandText = qry.CommandSql;
                 cmd.CommandType = qry.CommandType;
+                cmd.CommandTimeout = CommandTimeoutProvider.Timeout;
                 AddParams(cmd, qry);
                 result = cmd.ExecuteNonQuery();
                 // Issue 11 fix introduced by feroalien@hotmail.com
