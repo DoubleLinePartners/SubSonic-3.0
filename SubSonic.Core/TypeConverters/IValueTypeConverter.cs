@@ -74,6 +74,30 @@ namespace SubSonic.TypeConverters
         }
     }
 
+    public class Int32ToBooleanValueTypeConverter: IValueTypeConverter<int, bool>
+    {
+        public bool Convert(int value)
+        {
+            return value != 0;
+        }
+    }
+
+    public class Int32ToLongValueTypeConverter: IValueTypeConverter<int, long>
+    {
+        public long Convert(int value)
+        {
+            return value;
+        }
+    }
+
+    public class LongToInt32ValueTypeConverter: IValueTypeConverter<long, int>
+    {
+        public int Convert(long value)
+        {
+            return (int)value;
+        }
+    }
+
     public class ValueTypeConverterService
     {
         public static object ChangeType(Object value, Type destinationType)
