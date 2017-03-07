@@ -79,6 +79,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\Configurator.cs" />
+    <Compile Include="DataProviders\CommandTimeoutProvider.cs" />
     <Compile Include="DataProviders\IInterceptionStrategy.cs" />
     <Compile Include="DataProviders\LazyLoadInterceptor.cs" />
     <Compile Include="DataProviders\DB2\DB2Provider.cs" />

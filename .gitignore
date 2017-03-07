@@ -21,6 +21,8 @@ Thumbs.db
 *.log
 *.swp
 *.user
+*.ncrunchproject
+_NCrunch_SubSonic.Linq/
 _compareTemp
 _notes
 aspnet_client
