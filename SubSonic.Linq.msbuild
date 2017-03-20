@@ -38,8 +38,7 @@
       ToolPath="$(MSBuildProjectDirectory)\packages\ilmerge.2.14.1208\tools"
       Internalize="true"
       TargetKind="library"
-      DebugInfo="false"
-	  TargetPlatform="v4,C:\Program Files\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0"/>
+      DebugInfo="false" />
   </Target>
 
   <Target Name="Build" DependsOnTargets="Clean">
