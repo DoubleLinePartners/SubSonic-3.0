@@ -17,16 +17,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <inputAssemblies Include="$(buildDir)\$(subsonicLib)" />
-    <inputAssemblies Include="$(buildDir)\Castle.Core.dll" />
-    <inputAssemblies Include="$(buildDir)\Castle.Windsor.dll" />
+    <inputAssemblies Include="$(outputDir)\$(subsonicLib)" />
+    <inputAssemblies Include="$(outputDir)\Castle.Core.dll" />
+    <inputAssemblies Include="$(outputDir)\Castle.Windsor.dll" />
   </ItemGroup>
 
   <UsingTask AssemblyFile="lib\xunit.runner.msbuild.dll" TaskName="Xunit.Runner.MSBuild.xunit" />
   <Import Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.Targets"/>
 
   <Target Name="Clean">
-    <RemoveDir Directories="$(outputdir)" />
+    <RemoveDir Directories="$(outputDir)" />
   </Target>
 
   <Target Name="Merge" DependsOnTargets="Build">
@@ -46,6 +46,6 @@
   </Target>
 
   <Target Name="Test" DependsOnTargets="Build">
-    <xunit assembly="$(outputdir)\SubSonic.Tests.Unit.dll" />
+    <xunit assembly="$(outputDir)\SubSonic.Tests.Unit.dll" />
   </Target>
 </Project>
