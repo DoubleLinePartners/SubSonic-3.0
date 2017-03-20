@@ -46,6 +46,6 @@
   </Target>
 
   <Target Name="Test" DependsOnTargets="Build">
-    <xunit assembly="SubSonic.Tests.Unit\bin\$(configuration)\SubSonic.Tests.Unit.dll" />
+    <xunit assembly="$(outputdir)\SubSonic.Tests.Unit.dll" />
   </Target>
 </Project>
