@@ -35,7 +35,7 @@
       InputAssemblies="@(inputAssemblies)" 
       AllowDuplicateTypes="@(allowDuplicates)" 
       OutputFile="$(outputFile)" 
-      ToolPath="$(toolsDir)\ILMerge"
+      ToolPath="$(MSBuildProjectDirectory)\packages\ilmerge.2.14.1208\tools"
       Internalize="true"
       TargetKind="library"
       DebugInfo="false"
