@@ -18,6 +18,7 @@ using System.Linq.Expressions;
 using SubSonic.Linq.Structure;
 using SubSonic.Query;
 using System.Collections;
+using ExpressionVisitor = SubSonic.Linq.Structure.ExpressionVisitor;
 
 namespace SubSonic.Extensions
 {
