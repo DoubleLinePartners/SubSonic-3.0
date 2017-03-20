@@ -38,7 +38,8 @@
       ToolPath="$(toolsDir)\ILMerge"
       Internalize="true"
       TargetKind="library"
-      DebugInfo="false" />
+      DebugInfo="false"
+	  TargetPlatform="v4,C:\Program Files\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0"/>
   </Target>
 
   <Target Name="Build" DependsOnTargets="Clean">
